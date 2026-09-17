@@ -49,7 +49,11 @@ public class ChatController : ControllerBase
         }
         else
         {
-            var existing = await _conversationRepository.GetAsync(conversationId.Value, ct);
+            var existing =
+                await _conversationRepository.GetAsync(
+                    conversationId.Value,
+                    ct);
+
             if (existing is null)
             {
                 return Results.NotFound(new { detail = "Conversation not found" });
