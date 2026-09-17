@@ -1,8 +1,6 @@
 using System.Text.Json;
 using Chat.App.API.AgentServices;
-using Chat.App.API.Configuration;
 using Chat.App.API.Database;
-using Chat.App.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,41 +9,21 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton(new JsonSerializerOptions(JsonSerializerDefaults.Web));
 
-var databaseSettings = builder.Configuration.GetSection(DatabaseSettings.SectionName).Get<DatabaseSettings>()
-    ?? new DatabaseSettings();
+var connectionString = builder.Configuration.GetConnectionString("Default")
+    ?? throw new InvalidOperationException("Database connection string is required. Set 'ConnectionStrings:Default' or 'ConnectionString' in configuration.");
 
-builder.Services.AddDatabaseServices(databaseSettings);
+builder.Services.AddDatabaseServices(connectionString);
 
-var agentSettings = builder.Configuration.GetSection(AgentSettings.SectionName).Get<AgentSettings>()
-    ?? new AgentSettings();
+var agentApiKey = builder.Configuration["Agent:ApiKey"] ?? string.Empty;
+var agentModel = builder.Configuration["Agent:Model"] ?? string.Empty;
+var agentName = builder.Configuration["Agent:Name"] ?? string.Empty;
+var agentSystemPrompt = builder.Configuration["Agent:SystemPrompt"] ?? string.Empty;
 
-if (string.IsNullOrWhiteSpace(agentSettings.ApiKey))
-{
-    throw new InvalidOperationException("Agent:ApiKey is required in appsettings.json.");
-}
-
-if (string.IsNullOrWhiteSpace(agentSettings.Model))
-{
-    throw new InvalidOperationException("Agent:Model is required in appsettings.json.");
-}
-
-if (string.IsNullOrWhiteSpace(agentSettings.Name))
-{
-    throw new InvalidOperationException("Agent:Name is required in appsettings.json.");
-}
-
-if (string.IsNullOrWhiteSpace(agentSettings.SystemPrompt))
-{
-    throw new InvalidOperationException("Agent:SystemPrompt is required in appsettings.json.");
-}
-
-builder.Services.AddAgentServices(agentSettings.ApiKey, agentSettings.Model, agentSettings.Name, agentSettings.SystemPrompt);
+builder.Services.AddAgentServices(agentApiKey, agentModel, agentName, agentSystemPrompt);
 
 builder.Services.AddCors(options =>
 {
-    var corsSettings = builder.Configuration.GetSection(CorsSettings.SectionName).Get<CorsSettings>()
-        ?? new CorsSettings();
-    var origins = corsSettings.AllowedOrigins;
+    var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? new[] { "*" };
 
     options.AddPolicy("ChatAppCors", policy =>
     {
@@ -71,6 +49,11 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/openapi/v1.json", "v1");
+    });
+
 }
 
 app.UseHttpsRedirection();

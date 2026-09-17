@@ -4,11 +4,11 @@ using Chat.App.API.Helpers;
 using Chat.App.API.Services;
 using ChatRequestModel = Chat.App.API.Models.ChatRequest;
 using ChatResponseModel = Chat.App.API.Models.ChatResponse;
-using HealthResponseModel = Chat.App.API.Models.HealthResponse;
 using MessageModel = Chat.App.API.Models.Message;
 using ConversationEntity = Chat.App.API.Database.Entities.Conversation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.AI;
+using Chat.App.API.Models;
 
 namespace Chat.App.API.Controllers;
 
@@ -87,9 +87,4 @@ public class ChatController : ControllerBase
         return sseResult;
     }
 
-    [HttpGet("health")]
-    public IResult Health()
-    {
-        return Results.Ok(new HealthResponseModel("ok", "0.1.0"));
-    }
 }

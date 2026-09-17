@@ -1,16 +1,18 @@
-using Chat.App.API.Configuration;
 using Microsoft.EntityFrameworkCore;
 
 namespace Chat.App.API.Database;
 
 public static class DatabaseServiceCollectionExtensions
 {
-    public static IServiceCollection AddDatabaseServices(this IServiceCollection services, DatabaseSettings databaseSettings)
+    public static IServiceCollection AddDatabaseServices(this IServiceCollection services, string connectionString)
     {
-        var dbOptions = databaseSettings ?? new DatabaseSettings();
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new ArgumentNullException("Database connection string is required. Set 'ConnectionStrings:Default' or 'ConnectionString' in configuration.");
+        }
 
         services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlite(dbOptions.ConnectionString));
+            options.UseSqlite(connectionString));
 
         services.AddScoped<IConversationRepository, ConversationRepository>();
 

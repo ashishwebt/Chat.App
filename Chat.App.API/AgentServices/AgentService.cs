@@ -32,7 +32,7 @@ public sealed class AgentService : IAgentService
         [EnumeratorCancellation]
      CancellationToken ct = default)
     {
-        AgentSession session = await _agent.CreateSessionAsync(conversationId, ct);
+        AgentSession session = await _agent.CreateSessionAsync(ct);
         StringBuilder accumulatedText = new();
         await foreach (var update in _agent.RunStreamingAsync(message, session))
         {
