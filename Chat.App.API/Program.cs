@@ -56,6 +56,12 @@ using (var scope = app.Services.CreateScope())
     db.Database.EnsureCreated();
 }
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ChatHistoryDbContext>();
+    db.Database.EnsureCreated();
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

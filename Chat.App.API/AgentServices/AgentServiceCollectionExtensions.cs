@@ -1,6 +1,9 @@
 
-using System;
+using Chat.App.API.AgentServices.HistoryProvider;
 using Chat.App.API.Services;
+using Microsoft.Agents.AI;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
 
 namespace Chat.App.API.AgentServices;
 
@@ -32,8 +35,36 @@ public static class AgentServiceCollectionExtensions
         {
             throw new ArgumentException("System prompt is required.", nameof(systemPrompt));
         }
+        services.AddPooledDbContextFactory<ChatHistoryDbContext>(options =>
+        {
+            options.UseSqlite("Data Source=chat-history.db");
+        });
 
-        services.AddSingleton<IAgentService>(_ => new AgentService(apiKey, model, name, systemPrompt));
+        services.AddSingleton<SqliteChatHistoryProvider>();
+        services.AddSingleton<SqliteChatHistoryProvider>();
+        services.AddSingleton<IAgentService>((provider) =>
+        {
+            using (var scope = provider.CreateScope())
+            {
+                var chatHistoryProvider = scope.ServiceProvider.GetRequiredService<SqliteChatHistoryProvider>();
+                ChatClientAgentOptions options = new()
+                {
+                    ChatHistoryProvider = chatHistoryProvider,
+                    Name = name,
+                    ChatOptions = new()
+                    {
+                        Instructions = systemPrompt,
+                    }
+                };
+
+                ChatClientAgent agent = new(
+                    options: options,
+                    chatClient: new Google.GenAI.Client(vertexAI: false, apiKey: apiKey).AsIChatClient(model)
+                );
+                return new AgentService(agent);
+            }
+
+        });
         return services;
     }
 }
