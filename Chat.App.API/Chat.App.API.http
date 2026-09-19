@@ -15,8 +15,18 @@ Content-Type: application/json
 Accept: text/event-stream
 
 {
-  "conversation_id": null,
-  "message": "Hello! Tell me a fun fact about the moon."
+  "conversationId": null,
+  "message": "My name is Ashish."
+}
+###
+
+POST {{Chat.App.API_HostAddress}}/api/chat
+Content-Type: application/json
+Accept: text/event-stream
+
+{
+  "conversationId": "<id-from-previous-call>",
+  "message": "What is my name?"
 }
 
 ###
