@@ -41,29 +41,25 @@ public static class AgentServiceCollectionExtensions
         });
 
         services.AddSingleton<SqliteChatHistoryProvider>();
-        services.AddSingleton<SqliteChatHistoryProvider>();
-        services.AddSingleton<IAgentService>((provider) =>
+        services.AddSingleton<IAgentService>(provider =>
         {
-            using (var scope = provider.CreateScope())
+            var chatHistoryProvider = provider.GetRequiredService<SqliteChatHistoryProvider>();
+            ChatClientAgentOptions options = new()
             {
-                var chatHistoryProvider = scope.ServiceProvider.GetRequiredService<SqliteChatHistoryProvider>();
-                ChatClientAgentOptions options = new()
+                ChatHistoryProvider = chatHistoryProvider,
+                Name = name,
+                ChatOptions = new()
                 {
-                    ChatHistoryProvider = chatHistoryProvider,
-                    Name = name,
-                    ChatOptions = new()
-                    {
-                        Instructions = systemPrompt,
-                    }
-                };
+                    Instructions = systemPrompt,
+                }
+            };
 
-                ChatClientAgent agent = new(
-                    options: options,
-                    chatClient: new Google.GenAI.Client(vertexAI: false, apiKey: apiKey).AsIChatClient(model)
-                );
-                return new AgentService(agent);
-            }
+            ChatClientAgent agent = new(
+                options: options,
+                chatClient: new Google.GenAI.Client(vertexAI: false, apiKey: apiKey).AsIChatClient(model)
+            );
 
+            return new AgentService(agent);
         });
         return services;
     }

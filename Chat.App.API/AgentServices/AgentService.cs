@@ -37,16 +37,13 @@ public sealed class AgentService : IAgentService
             }
         }
 
-        StringBuilder accumulatedText = new();
         await foreach (var update in _agent.RunStreamingAsync(message, session))
         {
             if (!string.IsNullOrEmpty(update.Text))
             {
-                accumulatedText.Append(update.Text);
                 yield return update;
             }
         }
-        yield return new AgentResponseUpdate(ChatRole.Assistant, accumulatedText.ToString());
 
     }
 
