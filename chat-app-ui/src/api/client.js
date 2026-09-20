@@ -10,30 +10,58 @@ export class ApiError extends Error {
   }
 }
 
-async function request(path, options = {}) {
-  let res;
-  try {
-    res = await fetch(path, {
-      headers: { 'Content-Type': 'application/json', ...options.headers },
-      ...options,
-    });
-  } catch (err) {
-    throw new ApiError('Could not reach the server. Check your connection and try again.');
-  }
-
-  if (!res.ok) {
-    let detail = '';
+export async function withRetry(
+  operation,
+  {
+    maxRetries = 3,
+    baseDelayMs = 3000,
+    maxDelayMs = 30000,
+    sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    onDelay,
+  } = {},
+) {
+  for (let retryAttempt = 0; ; retryAttempt += 1) {
     try {
-      const body = await res.json();
-      detail = body?.message || body?.detail || '';
-    } catch {
-      /* response wasn't JSON, ignore */
-    }
-    throw new ApiError(detail || `Request failed (${res.status}).`, res.status);
-  }
+      return await operation();
+    } catch (error) {
+      const hasRetriesLeft = retryAttempt < maxRetries;
+      if (!hasRetriesLeft) {
+        throw error;
+      }
 
-  if (res.status === 204) return null;
-  return res.json();
+      const waitMs = Math.min(baseDelayMs * 3 ** retryAttempt, maxDelayMs);
+      if (onDelay) onDelay(waitMs);
+      await sleep(waitMs);
+    }
+  }
+}
+
+async function request(path, options = {}) {
+  return withRetry(async () => {
+    let res;
+    try {
+      res = await fetch(path, {
+        headers: { 'Content-Type': 'application/json', ...options.headers },
+        ...options,
+      });
+    } catch {
+      throw new ApiError('Could not reach the server. Check your connection and try again.');
+    }
+
+    if (!res.ok) {
+      let detail = '';
+      try {
+        const body = await res.json();
+        detail = body?.message || body?.detail || '';
+      } catch {
+        /* response wasn't JSON, ignore */
+      }
+      throw new ApiError(detail || `Request failed (${res.status}).`, res.status);
+    }
+
+    if (res.status === 204) return null;
+    return res.json();
+  });
 }
 
 async function readEventStream(response, onEvent) {
@@ -105,22 +133,26 @@ export const api = {
   getConversation: (id) => request(`/api/chat/${id}`),
 
   sendMessage: async (conversationId, message) => {
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ conversationId, message }),
-    });
+    const response = await withRetry(async () => {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId, message }),
+      });
 
-    if (!response.ok) {
-      let detail = '';
-      try {
-        const body = await response.json();
-        detail = body?.message || body?.detail || '';
-      } catch {
-        /* response wasn't JSON, ignore */
+      if (!res.ok) {
+        let detail = '';
+        try {
+          const body = await res.json();
+          detail = body?.message || body?.detail || '';
+        } catch {
+          /* response wasn't JSON, ignore */
+        }
+        throw new ApiError(detail || `Request failed (${res.status}).`, res.status);
       }
-      throw new ApiError(detail || `Request failed (${response.status}).`, response.status);
-    }
+
+      return res;
+    });
 
     const resolvedConversationId = response.headers.get('x-conversation-id') ?? conversationId;
     let finalConversationId = resolvedConversationId;
