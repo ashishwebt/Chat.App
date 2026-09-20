@@ -143,12 +143,23 @@ public class ChatController : ControllerBase
             return NotFound(new { detail = "Conversation not found" });
         }
 
+        var history = await _agentService.GetHistoryAsync(
+            conversationsId.ToString(),
+            ct);
+
+        var messages = history
+            .Select(msg => new Message(
+                msg.Role.ToString(),
+                msg.Text ?? string.Empty,
+                null))
+            .ToList();
+
         var result = new ConversationDetail(
             conversation.Id,
             conversation.Title,
             conversation.CreatedAt,
             conversation.UpdatedAt,
-            new List<Message>());
+            messages);
 
         _logger.LogInformation("Retrieved conversation {ConversationId}", conversationsId);
         return Ok(result);

@@ -52,6 +52,7 @@ public static class AgentServiceCollectionExtensions
         services.AddSingleton<IAgentService>(provider =>
         {
             var chatHistoryProvider = provider.GetRequiredService<SqliteChatHistoryProvider>();
+            var dbFactory = provider.GetRequiredService<IDbContextFactory<ChatHistoryDbContext>>();
             ChatClientAgentOptions options = new()
             {
                 ChatHistoryProvider = chatHistoryProvider,
@@ -67,7 +68,7 @@ public static class AgentServiceCollectionExtensions
                 chatClient: new Google.GenAI.Client(vertexAI: false, apiKey: apiKey).AsIChatClient(model)
             );
 
-            return new AgentService(agent);
+            return new AgentService(agent, dbFactory);
         });
 
         var provider = services.BuildServiceProvider();

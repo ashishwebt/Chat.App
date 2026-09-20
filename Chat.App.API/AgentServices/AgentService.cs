@@ -1,7 +1,9 @@
 
 using System.Runtime.CompilerServices;
-using System.Text;
+using System.Text.Json;
+using Chat.App.API.AgentServices.HistoryProvider;
 using Microsoft.Agents.AI;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 
 namespace Chat.App.API.Services;
@@ -12,29 +14,34 @@ public interface IAgentService
         string conversationId,
         ChatMessage message,
         CancellationToken ct = default);
+
+    Task<IReadOnlyList<ChatMessage>> GetHistoryAsync(
+        string conversationId,
+        CancellationToken ct = default);
 }
 
 public sealed class AgentService : IAgentService
 {
     private readonly ChatClientAgent _agent;
+    private readonly IDbContextFactory<ChatHistoryDbContext> _dbFactory;
 
-    public AgentService(ChatClientAgent agent)
+    public AgentService(
+        ChatClientAgent agent,
+        IDbContextFactory<ChatHistoryDbContext> dbFactory)
     {
         _agent = agent;
+        _dbFactory = dbFactory;
     }
+
     public async IAsyncEnumerable<AgentResponseUpdate> StreamAsync(
         string conversationId, ChatMessage message,
         [EnumeratorCancellation]
      CancellationToken ct = default)
     {
-
         AgentSession session = await _agent.CreateSessionAsync(ct);
-        if (_agent.ChatHistoryProvider?.StateKeys.Count > 0)
+        foreach (var key in _agent.ChatHistoryProvider?.StateKeys ?? [])
         {
-            foreach (var key in _agent.ChatHistoryProvider.StateKeys)
-            {
-                session.StateBag.SetValue(key, conversationId);
-            }
+            session.StateBag.SetValue(key, conversationId);
         }
 
         await foreach (var update in _agent.RunStreamingAsync(message, session))
@@ -44,7 +51,30 @@ public sealed class AgentService : IAgentService
                 yield return update;
             }
         }
-
     }
 
+    public async Task<IReadOnlyList<ChatMessage>> GetHistoryAsync(
+        string conversationId,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(conversationId))
+        {
+            throw new ArgumentException("Conversation ID is required.", nameof(conversationId));
+        }
+
+
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+
+        var rows = await db.Messages
+            .AsNoTracking()
+            .Where(x => x.ConversationId == conversationId)
+            .OrderBy(x => x.Sequence)
+            .ToListAsync(ct);
+
+        return rows
+            .Select(x => JsonSerializer.Deserialize<ChatMessage>(x.MessageJson))
+            .Where(x => x is not null)
+            .Cast<ChatMessage>()
+            .ToList();
+    }
 }
