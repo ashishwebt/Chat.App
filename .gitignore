@@ -45,3 +45,5 @@ coverage*/
 
 # Rider
 .idea/
+node_modules/
+dist/
