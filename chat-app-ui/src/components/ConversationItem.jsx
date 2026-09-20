@@ -1,8 +1,30 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pencil, Trash2, Check, X } from 'lucide-react';
 
+function toLocalDate(iso) {
+  if (!iso) return null;
+
+  const value = String(iso).trim();
+  if (!value) return null;
+
+  const asDate = new Date(value);
+  if (Number.isNaN(asDate.getTime())) return null;
+
+  const hasTimezone = /[zZ]|[+-]\d{2}:?\d{2}$/.test(value);
+  if (!hasTimezone) {
+    const normalized = value.includes('T') || value.includes(' ') ? value.replace(' ', 'T') : `${value}T00:00:00`;
+    const utcDate = new Date(`${normalized}Z`);
+    if (!Number.isNaN(utcDate.getTime())) return utcDate;
+  }
+
+  return asDate;
+}
+
 function relativeTime(iso) {
-  const diffMs = Date.now() - new Date(iso).getTime();
+  const date = toLocalDate(iso);
+  if (!date) return 'just now';
+
+  const diffMs = Date.now() - date.getTime();
   const mins = Math.round(diffMs / 60000);
   if (mins < 1) return 'just now';
   if (mins < 60) return `${mins}m ago`;
@@ -10,7 +32,7 @@ function relativeTime(iso) {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.round(hours / 24);
   if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString();
+  return date.toLocaleDateString();
 }
 
 export default function ConversationItem({

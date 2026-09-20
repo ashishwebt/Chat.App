@@ -2,9 +2,30 @@ import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Check, Copy } from 'lucide-react';
 
+function toLocalDate(iso) {
+  if (!iso) return null;
+
+  const value = String(iso).trim();
+  if (!value) return null;
+
+  const asDate = new Date(value);
+  if (Number.isNaN(asDate.getTime())) return null;
+
+  const hasTimezone = /[zZ]|[+-]\d{2}:?\d{2}$/.test(value);
+  if (!hasTimezone) {
+    const normalized = value.includes('T') || value.includes(' ') ? value.replace(' ', 'T') : `${value}T00:00:00`;
+    const utcDate = new Date(`${normalized}Z`);
+    if (!Number.isNaN(utcDate.getTime())) return utcDate;
+  }
+
+  return asDate;
+}
+
 function formatTime(iso) {
   try {
-    return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const date = toLocalDate(iso);
+    if (!date) return '';
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   } catch {
     return '';
   }
