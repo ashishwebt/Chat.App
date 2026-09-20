@@ -14,7 +14,8 @@ public static class AgentServiceCollectionExtensions
         string apiKey,
         string model,
         string name,
-        string systemPrompt)
+        string systemPrompt,
+        string connectionStringMessages)
     {
         if (string.IsNullOrWhiteSpace(apiKey))
         {
@@ -34,10 +35,16 @@ public static class AgentServiceCollectionExtensions
         if (string.IsNullOrWhiteSpace(systemPrompt))
         {
             throw new ArgumentException("System prompt is required.", nameof(systemPrompt));
+        }        
+        
+        if (string.IsNullOrWhiteSpace(connectionStringMessages))
+        {
+            throw new ArgumentException("Connection string messages is required.", nameof(connectionStringMessages));
         }
+
         services.AddPooledDbContextFactory<ChatHistoryDbContext>(options =>
         {
-            options.UseSqlite("Data Source=chat-history.db");
+            options.UseSqlite(connectionStringMessages);
         });
 
         services.AddSingleton<SqliteChatHistoryProvider>();
