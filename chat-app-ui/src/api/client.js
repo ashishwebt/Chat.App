@@ -132,7 +132,7 @@ export const api = {
 
   getConversation: (id) => request(`/api/chat/${id}`),
 
-  sendMessage: async (conversationId, message) => {
+  sendMessage: async (conversationId, message, { onEvent } = {}) => {
     const response = await withRetry(async () => {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -156,18 +156,21 @@ export const api = {
 
     const resolvedConversationId = response.headers.get('x-conversation-id') ?? conversationId;
     let finalConversationId = resolvedConversationId;
-    let finalMessage = '';
 
+    // Forward stream events to the caller when provided so the UI can render
+    // partial assistant content and pick up the conversation id as soon as it's
+    // emitted by the server.
     await readEventStream(response, (eventName, payload) => {
       if (!payload || typeof payload !== 'object') return;
 
       const nextId = payload.conversationId ?? finalConversationId;
       if (nextId) finalConversationId = nextId;
 
-      if (eventName === 'message' || eventName === 'done') {
-        const chunk = payload?.assistantMessage?.content ?? payload?.content ?? '';
-        if (chunk) {
-          finalMessage = chunk;
+      if (typeof onEvent === 'function') {
+        try {
+          onEvent(eventName, payload);
+        } catch {
+          // ignore handler errors
         }
       }
     });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ToastProvider } from './context/ToastContext';
 import { useTheme } from './hooks/useTheme';
 import { useConversations } from './hooks/useConversations';
@@ -23,6 +23,34 @@ function Shell() {
     renameConversation,
     deleteConversation,
   } = useConversations();
+
+  // On initial load, open a conversation if the URL contains one.
+  useEffect(() => {
+    try {
+      const m = window.location.pathname.match(/^\/c\/conversation\/([^/]+)\/?$/);
+      if (m && m[1]) {
+        openConversation(m[1]);
+      }
+    } catch {
+      // ignore in non-browser / test environments
+    }
+    // run only on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    try {
+      const path = activeId ? `/c/conversation/${activeId}` : '/';
+      if (window && window.history && window.location) {
+        if (window.location.pathname !== path) {
+          // Use replaceState so streaming partial updates don't fill history.
+          window.history.replaceState({}, '', path);
+        }
+      }
+    } catch {
+      // Ignore in environments without a window object (SSR/tests).
+    }
+  }, [activeId]);
 
   return (
     <div className="h-screen flex flex-col bg-paper text-ink">

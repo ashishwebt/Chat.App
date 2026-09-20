@@ -67,8 +67,39 @@ export function useConversations() {
       setSending(true);
 
       try {
-        const result = await api.sendMessage(activeId, trimmed);
-        const nextId = result.id;
+        let finalId = activeId;
+        // Maintain a streaming handler so the UI can show partial assistant
+        // content as it's produced and pick up the conversation id immediately.
+        await api.sendMessage(activeId, trimmed, {
+          onEvent: (eventName, payload) => {
+            if (!payload || typeof payload !== 'object') return;
+
+            const nextId = payload.conversationId;
+            if (nextId) {
+              finalId = nextId;
+              setActiveId(nextId);
+            }
+
+            if (eventName === 'message' || eventName === 'done') {
+              const chunk = payload?.assistantMessage?.content ?? payload?.content ?? '';
+              if (!chunk) return;
+
+              setMessages((prev) => {
+                const last = prev[prev.length - 1];
+                if (!last || last.role !== 'assistant') {
+                  return [...prev, { role: 'assistant', content: chunk, createdAt: new Date().toISOString() }];
+                }
+                const updated = prev.slice();
+                updated[updated.length - 1] = { ...last, content: (last.content || '') + chunk };
+                return updated;
+              });
+            }
+          },
+        });
+
+        // Refresh final state from server (conversation id may have changed)
+        const result = await api.getConversation(finalId);
+        const nextId = result?.id ?? finalId;
         const isNewConversation = !activeId;
 
         setMessages(result.messages || []);
