@@ -1,17 +1,13 @@
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Net.ServerSentEvents;
 
 using Chat.App.API.Database;
 using Chat.App.API.Services;
-
-using ChatRequestModel = Chat.App.API.Models.ChatRequest;
 using ChatResponseModel = Chat.App.API.Models.ChatResponse;
-using MessageModel = Chat.App.API.Models.Message;
-using ConversationEntity = Chat.App.API.Database.Entities.Conversation;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.AI;
+using Chat.App.API.Models;
 
 namespace Chat.App.API.Controllers;
 
@@ -19,6 +15,7 @@ namespace Chat.App.API.Controllers;
 [Route("api/chat")]
 public class ChatController : ControllerBase
 {
+
     private readonly IAgentService _agentService;
     private readonly IConversationRepository _conversationRepository;
     private readonly ILogger<ChatController> _logger;
@@ -35,7 +32,7 @@ public class ChatController : ControllerBase
 
     [HttpPost]
     public async Task<IResult> Chat(
-        [FromBody] ChatRequestModel request,
+        [FromBody] ChatRequest request,
         CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Message))
@@ -48,7 +45,7 @@ public class ChatController : ControllerBase
 
         var conversationId = request.ConversationId;
 
-        ConversationEntity conversation;
+        Database.Entities.Conversation conversation;
 
         if (conversationId is null)
         {
@@ -112,7 +109,7 @@ public class ChatController : ControllerBase
 
             var payload = new ChatResponseModel(
                 conversationId,
-                new MessageModel(
+                new Message(
                     "assistant",
                     update.Text,
                     null));
@@ -124,7 +121,7 @@ public class ChatController : ControllerBase
 
         var finalPayload = new ChatResponseModel(
             conversationId,
-            new MessageModel(
+            new Message(
                 "assistant",
                 accumulator.ToString(),
                 null));
@@ -133,4 +130,28 @@ public class ChatController : ControllerBase
             finalPayload,
             eventType: "done");
     }
+
+        [HttpGet("{conversationsId:guid}")]
+    public async Task<ActionResult<ConversationDetail>> Get(Guid conversationsId, CancellationToken ct)
+    {
+        _logger.LogInformation("Retrieving chat conversation {ConversationId}", conversationsId);
+
+        var conversation = await _conversationRepository.GetAsync(conversationsId, ct);
+        if (conversation is null)
+        {
+            _logger.LogWarning("Cchat conversation {ConversationId} was not found", conversationsId);
+            return NotFound(new { detail = "Conversation not found" });
+        }
+
+        var result = new ConversationDetail(
+            conversation.Id,
+            conversation.Title,
+            conversation.CreatedAt,
+            conversation.UpdatedAt,
+            new List<Message>());
+
+        _logger.LogInformation("Retrieved conversation {ConversationId}", conversationsId);
+        return Ok(result);
+    }
+
 }

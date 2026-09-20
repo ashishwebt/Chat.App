@@ -1,10 +1,6 @@
 using Chat.App.API.Database;
-using Chat.App.API.Models;
 using Microsoft.AspNetCore.Mvc;
-using ConversationModel = Chat.App.API.Models.Conversation;
-using ConversationDetailModel = Chat.App.API.Models.ConversationDetail;
-using MessageModel = Chat.App.API.Models.Message;
-using RenameConversationRequestModel = Chat.App.API.Models.RenameConversationRequest;
+using Chat.App.API.Models;
 
 namespace Chat.App.API.Controllers;
 
@@ -24,57 +20,52 @@ public class ConversationsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<ConversationModel>>> List([FromQuery] int skip = 0, [FromQuery] int limit = 100, CancellationToken ct = default)
+    public async Task<ActionResult<List<Conversation>>> List([FromQuery] int skip = 0, [FromQuery] int limit = 100, CancellationToken ct = default)
     {
+        _logger.LogInformation("Listing conversations with skip {Skip} and limit {Limit}", skip, limit);
+
         var conversations = await _conversationRepository.ListAsync(skip, limit, ct);
-        var result = conversations.Select(c => new ConversationModel(c.Id, c.Title, c.CreatedAt, c.UpdatedAt)).ToList();
-        return Ok(result);
-    }
+        var result = conversations.Select(c => new Conversation(c.Id, c.Title, c.CreatedAt, c.UpdatedAt)).ToList();
 
-    [HttpGet("{id:guid}")]
-    public async Task<ActionResult<ConversationDetailModel>> Get(Guid id, CancellationToken ct)
-    {
-        var conversation = await _conversationRepository.GetAsync(id, ct);
-        if (conversation is null)
-        {
-            return NotFound(new { detail = "Conversation not found" });
-        }
-
-        var result = new ConversationDetailModel(
-            conversation.Id,
-            conversation.Title,
-            conversation.CreatedAt,
-            conversation.UpdatedAt,
-            new List<MessageModel>());
+        _logger.LogInformation("Retrieved {Count} conversations", result.Count);
         return Ok(result);
     }
 
     [HttpPatch("{id:guid}")]
-    public async Task<ActionResult<ConversationModel>> Rename(Guid id, [FromBody] RenameConversationRequestModel request, CancellationToken ct)
+    public async Task<ActionResult<Conversation>> Rename(Guid id, [FromBody] RenameConversationRequest request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Title))
         {
+            _logger.LogWarning("Rename request rejected for conversation {ConversationId}: title was empty", id);
             return BadRequest(new { detail = "Title cannot be empty" });
         }
+
+        _logger.LogInformation("Renaming conversation {ConversationId} to {Title}", id, request.Title);
 
         var conversation = await _conversationRepository.RenameAsync(id, request.Title, ct);
         if (conversation is null)
         {
+            _logger.LogWarning("Unable to rename missing conversation {ConversationId}", id);
             return NotFound(new { detail = "Conversation not found" });
         }
 
-        return Ok(new ConversationModel(conversation.Id, conversation.Title, conversation.CreatedAt, conversation.UpdatedAt));
+        _logger.LogInformation("Renamed conversation {ConversationId}", id);
+        return Ok(new Conversation(conversation.Id, conversation.Title, conversation.CreatedAt, conversation.UpdatedAt));
     }
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
+        _logger.LogInformation("Deleting conversation {ConversationId}", id);
+
         var deleted = await _conversationRepository.DeleteAsync(id, ct);
         if (!deleted)
         {
+            _logger.LogWarning("Delete failed because conversation {ConversationId} was not found", id);
             return NotFound(new { detail = "Conversation not found" });
         }
 
+        _logger.LogInformation("Deleted conversation {ConversationId}", id);
         return Ok(new { deleted = true });
     }
 }

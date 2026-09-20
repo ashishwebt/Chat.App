@@ -73,7 +73,7 @@ public class Program
 
         app.MapControllers();
 
-        app.MapGet("/", () => Results.Ok(new
+        app.MapGet("/api/health", () => Results.Ok(new
         {
             status = "Chat.App API is running."
         }));

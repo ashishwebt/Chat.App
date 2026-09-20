@@ -25,20 +25,20 @@ Content-Type: application/json
 Accept: text/event-stream
 
 {
-  "conversationId": "71f20f16-13b0-420d-a9df-b936681583b3",
+  "conversationId": "<conversationId>",
   "message": "What is my name?"
 }
 
 ###
 
-@id = 71f20f16-13b0-420d-a9df-b936681583b3
+@conversationId = <conversationId>
 
-GET {{Chat.App.API_HostAddress}}/api/conversations/{{id}}
+GET {{Chat.App.API_HostAddress}}/api/chat/{{conversationId}}
 Accept: application/json
 
 ###
 
-PATCH {{Chat.App.API_HostAddress}}/api/conversations/{{id}}
+PATCH {{Chat.App.API_HostAddress}}/api/conversations/{{conversationId}}
 Content-Type: application/json
 
 {
@@ -47,7 +47,7 @@ Content-Type: application/json
 
 ###
 
-DELETE {{Chat.App.API_HostAddress}}/api/conversations/{{id}}
+DELETE {{Chat.App.API_HostAddress}}/api/conversations/{{conversationId}}
 Accept: application/json
 
 ###
