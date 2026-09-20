@@ -1,66 +1,82 @@
-# Fieldnote — GenAI chat UI
+# Chat.App Frontend
 
-A React + Tailwind front end for the chat API described in the spec: sidebar
-conversation list, chat window with markdown + copy-to-clipboard, sticky
-composer, light/dark theme, toasts, and full CRUD on conversations.
+[日本語](./README.ja.md)
+
+A React + Vite + Tailwind chat interface for the Chat.App project. It provides a conversation sidebar, streaming message view, markdown rendering, theme switching, and conversation CRUD actions backed by the .NET API.
+
+## Features
+
+- Conversation list with create, rename, and delete flows
+- Streaming chat responses from the backend
+- Message history retrieval for each conversation
+- Markdown rendering and copy-to-clipboard for assistant responses
+- Light/dark theme persistence
+- Health status indicator for the API
+- Mobile-friendly sidebar and composer layout
+
+## Prerequisites
+
+- Node.js 20+ or a compatible LTS version
+- The backend API running locally
 
 ## Setup
 
+From the project root:
+
 ```bash
+cd chat-app-ui
 npm install
 npm run dev
 ```
 
-The dev server proxies `/api/*` to `http://localhost:8000` (see
-`vite.config.js`) — change the `target` to wherever your backend runs. In
-production, serve the built app from the same origin as the API (or put both
-behind one reverse proxy) so the relative `/api/...` calls keep resolving.
+The dev server runs at http://localhost:5173 and proxies requests under `/api` to the backend at http://localhost:5081 as configured in `vite.config.js`.
+
+## Scripts
 
 ```bash
-npm run build   # outputs to dist/
+npm run dev     # start the Vite development server
+npm run build   # create a production build in dist/
+npm run preview # preview the production build locally
 ```
 
-## Structure
+## API integration
 
-```
+The UI calls the backend endpoints below:
+
+- `GET /api/health` – backend health check
+- `GET /api/conversations` – list conversations
+- `PATCH /api/conversations/{id}` – rename a conversation
+- `DELETE /api/conversations/{id}` – delete a conversation
+- `POST /api/chat` – send a new chat message
+- `GET /api/chat/{id}` – fetch conversation details/history
+
+## Project structure
+
+```text
 src/
-  api/client.js            fetch wrapper for every endpoint in the spec,
-                            throws ApiError with a display-ready message
-  hooks/
-    useConversations.js     owns conversation list + active thread + all
-                             mutations (send, rename, delete)
-    useTheme.js              persisted light/dark theme
-    useHealth.js             polls /api/health every 30s for the top bar dot
-  context/ToastContext.jsx  success/error toasts, used by the hooks above
+  api/
+    client.js             API client wrapper and error handling
   components/
-    Sidebar.jsx              conversation list, new button, mobile drawer
-    ConversationItem.jsx     row with inline rename + delete
-    ConfirmModal.jsx         accessible confirm dialog (used for delete)
-    TopBar.jsx               wordmark, health dot, theme toggle, menu button
-    ChatWindow.jsx           message list, auto-scroll, thinking indicator
-    MessageBubble.jsx        role-based bubble, markdown render, copy button
-    MessageInput.jsx         sticky composer, markdown preview, Enter to send
-  App.jsx                    wires it all together
+    App.jsx               top-level app shell
+    ChatWindow.jsx        message list and streaming UI
+    ConversationItem.jsx  row-based list item with rename/delete actions
+    ConfirmModal.jsx      confirmation dialog for delete actions
+    MessageBubble.jsx     message styling, markdown, copy button
+    MessageInput.jsx      composer input and send handling
+    Sidebar.jsx           conversation navigation and actions
+    TopBar.jsx            title, health state, theme toggle, menu button
+  context/
+    ToastContext.jsx      toast notifications
+  hooks/
+    useConversations.js   conversation state and API mutations
+    useHealth.js           health polling logic
+    useTheme.js            persisted theme behavior
+  index.css               Tailwind/theme styling
+  main.jsx                app entry point
 ```
 
-## Notes on behavior
+## Notes
 
-- **Optimistic sends**: the user's bubble appears immediately; if the request
-  fails it's rolled back and a toast explains why, so the composer text isn't
-  lost mentally (re-type and retry).
-- **New conversation**: `conversationId` is omitted on the first send; the
-  hook adopts the `id`/`title` the server returns and slots it into the
-  sidebar without a full reload.
-- **Accessibility**: every icon-only button has an `aria-label`, the delete
-  confirmation is a proper modal (focus-trapped enough for a single action,
-  closes on Escape/backdrop click), and focus rings are visible everywhere
-  rather than suppressed.
-- **Reduced motion**: all animations (message fade-in, thinking dots) are
-  disabled under `prefers-reduced-motion`.
-
-## Design tokens
-
-Colors and type live as CSS variables in `src/index.css` (light values on
-`:root`, dark overrides under `.dark`) and are exposed to Tailwind via
-`tailwind.config.js`, so `bg-accent`, `text-ink-soft`, etc. work directly in
-class names and repaint automatically when the theme toggles.
+- The frontend relies on relative `/api/...` calls, which works well when the UI and API are served from the same origin or through the Vite proxy during development.
+- The app is designed to behave well for streaming chat responses and optimistic UI updates while preserving a responsive user experience.
+- Theme variables and Tailwind settings live in `src/index.css` and `tailwind.config.js`.
