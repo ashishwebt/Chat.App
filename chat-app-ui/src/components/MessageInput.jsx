@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { ArrowUp, Eye, EyeOff } from 'lucide-react';
 
 export default function MessageInput({ onSend, disabled }) {
@@ -49,8 +50,8 @@ export default function MessageInput({ onSend, disabled }) {
 
           <div className="px-3 pb-2 pt-1">
             {preview ? (
-              <div className="prose prose-sm max-w-none min-h-[2.5rem] text-sm text-ink [&_p]:my-1.5">
-                <ReactMarkdown>{value || '*Nothing to preview yet.*'}</ReactMarkdown>
+                <div className="prose prose-sm max-w-none min-h-[2.5rem] text-sm text-ink [&_p]:my-1.5">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{value || '*Nothing to preview yet.*'}</ReactMarkdown>
               </div>
             ) : (
               <textarea

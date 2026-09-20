@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Check, Copy } from 'lucide-react';
 
 function toLocalDate(iso) {
@@ -56,7 +57,7 @@ export default function MessageBubble({ role, content, createdAt }) {
           }`}
         >
           <div className="prose prose-sm max-w-none [&_p]:my-1.5 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_pre]:bg-ink/5 [&_pre]:rounded-lg [&_pre]:p-3 [&_code]:text-[0.85em]">
-            <ReactMarkdown>{content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
           </div>
         </div>
         <div className="flex items-center gap-2 mt-1 px-1">
