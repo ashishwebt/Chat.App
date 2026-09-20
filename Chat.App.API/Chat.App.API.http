@@ -25,13 +25,13 @@ Content-Type: application/json
 Accept: text/event-stream
 
 {
-  "conversationId": "<conversation>",
+  "conversationId": "71f20f16-13b0-420d-a9df-b936681583b3",
   "message": "What is my name?"
 }
 
 ###
 
-@id = <conversation>
+@id = 71f20f16-13b0-420d-a9df-b936681583b3
 
 GET {{Chat.App.API_HostAddress}}/api/conversations/{{id}}
 Accept: application/json

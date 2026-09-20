@@ -58,18 +58,6 @@ public class Program
 
         var app = builder.Build();
 
-        using (var scope = app.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Database.EnsureCreated();
-        }
-
-        using (var scope = app.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<ChatHistoryDbContext>();
-            db.Database.EnsureCreated();
-        }
-
         if (app.Environment.IsDevelopment())
         {
             app.MapOpenApi();

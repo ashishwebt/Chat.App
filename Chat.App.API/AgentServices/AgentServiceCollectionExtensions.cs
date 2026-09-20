@@ -4,6 +4,7 @@ using Chat.App.API.Services;
 using Microsoft.Agents.AI;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
+using Microsoft.OpenApi;
 
 namespace Chat.App.API.AgentServices;
 
@@ -35,8 +36,8 @@ public static class AgentServiceCollectionExtensions
         if (string.IsNullOrWhiteSpace(systemPrompt))
         {
             throw new ArgumentException("System prompt is required.", nameof(systemPrompt));
-        }        
-        
+        }
+
         if (string.IsNullOrWhiteSpace(connectionStringMessages))
         {
             throw new ArgumentException("Connection string messages is required.", nameof(connectionStringMessages));
@@ -68,6 +69,13 @@ public static class AgentServiceCollectionExtensions
 
             return new AgentService(agent);
         });
+
+        var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ChatHistoryDbContext>();
+        db.Database.EnsureCreated();
+
+
         return services;
     }
 }
