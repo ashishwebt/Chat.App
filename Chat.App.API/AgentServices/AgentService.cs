@@ -1,7 +1,6 @@
 
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using Chat.App.API.AgentServices.HistoryProvider;
 using Microsoft.Agents.AI;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;

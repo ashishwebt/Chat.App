@@ -1,10 +1,8 @@
 using System.Runtime.CompilerServices;
 using System.Net.ServerSentEvents;
-
 using Chat.App.API.Database;
 using Chat.App.API.Services;
 using ChatResponseModel = Chat.App.API.Models.ChatResponse;
-
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.AI;
 using Chat.App.API.Models;
@@ -131,7 +129,7 @@ public class ChatController : ControllerBase
             eventType: "done");
     }
 
-        [HttpGet("{conversationsId:guid}")]
+    [HttpGet("{conversationsId:guid}")]
     public async Task<ActionResult<ConversationDetail>> Get(Guid conversationsId, CancellationToken ct)
     {
         _logger.LogInformation("Retrieving chat conversation {ConversationId}", conversationsId);
