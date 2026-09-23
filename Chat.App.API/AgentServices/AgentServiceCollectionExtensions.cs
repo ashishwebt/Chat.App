@@ -57,7 +57,6 @@ public static class AgentServiceCollectionExtensions
                 Name = name,
                 ChatOptions = new()
                 {
-                    MaxOutputTokens = 10_000,
                     Instructions = systemPrompt,
                 }
             };
