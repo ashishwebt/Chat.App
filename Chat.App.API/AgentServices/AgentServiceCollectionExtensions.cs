@@ -1,12 +1,8 @@
-
-using System.ClientModel;
 using Chat.App.API.AgentServices.HistoryProvider;
 using Chat.App.API.Services;
 using Microsoft.Agents.AI;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
-using OpenAI;
-using OpenAI.Chat;
 
 namespace Chat.App.API.AgentServices;
 
@@ -65,17 +61,11 @@ public static class AgentServiceCollectionExtensions
                     Instructions = systemPrompt,
                 }
             };
-            var openRouterClient = new ChatClient(
-                model: model,
-                credential: new ApiKeyCredential(apiKey),
-                options: new OpenAIClientOptions
-                {
-                    Endpoint = new Uri("https://openrouter.ai/api/v1")
-                });
 
             ChatClientAgent agent = new(
                 options: options,
-                chatClient: openRouterClient.AsIChatClient()
+                chatClient: new Google.GenAI.Client(vertexAI: false, apiKey: apiKey).AsIChatClient(model)
+
                 );
 
             return new AgentService(agent, dbFactory);
